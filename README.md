@@ -41,3 +41,7 @@ projects.config.example  项目配置示例
 5. 本机：`powershell -File deploy.ps1` 一键部署
 
 详见 `docs/通用自动化部署系统.md`。
+
+## License
+
+MIT License. 适用范围：内网/局域网 Windows 服务器。云服务器请直接用 GitHub Actions。
