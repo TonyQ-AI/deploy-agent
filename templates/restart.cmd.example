@@ -1,0 +1,5 @@
+@echo off
+rem <PROJECT> restart (idempotent) - customize for each project
+taskkill /F /IM <YOUR_PROCESS>.exe > nul 2>&1
+timeout /t 2 /nobreak > nul
+start "" <YOUR_START_COMMAND>

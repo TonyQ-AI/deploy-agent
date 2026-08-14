@@ -1,0 +1,37 @@
+﻿# MediaManager 部署脚本（通用部署体系）
+# 用法：powershell -ExecutionPolicy Bypass -File deploy.ps1
+# 流程：git push -> 构建 -> 同步代码+dist -> 写标志（服务器 watcher 3 秒内自动重启）
+
+$ErrorActionPreference = 'Stop'
+
+# --- 配置（★ 新项目改这里）---
+# $Remote = 正斜杠 UNC（\服务器共享路径，勿用反斜杠）
+Write-Host '[1/4] 提交并推送代码...' -ForegroundColor Cyan
+git add -A
+git commit -m "deploy: $(Get-Date -Format 'yyyy-MM-dd HH:mm') 开发更新" --allow-empty
+git -c http.proxy=http://127.0.0.1:7897 push origin master
+if ($LASTEXITCODE -ne 0) { throw 'git push 失败，中止部署' }
+Write-Host '      推送完成' -ForegroundColor Green
+
+# --- 2. 构建前端 --------------------------------------------
+Write-Host '[2/4] 构建前端...' -ForegroundColor Cyan
+npm run build
+if ($LASTEXITCODE -ne 0) { throw '构建失败，中止部署' }
+Write-Host '      构建完成' -ForegroundColor Green
+
+# --- 3. 同步代码 + dist 到服务器 ----------------------------
+Write-Host '[3/4] 同步代码到服务器...' -ForegroundColor Cyan
+# 代码目录（排除数据/依赖/环境）
+robocopy "$PWD\server" "$Remote\server" /E /XD data /NFL /NDL /NJH /NJS
+robocopy "$PWD\src" "$Remote\src" /E /NFL /NDL /NJH /NJS
+robocopy "$PWD\dist" "$Remote\dist" /E /PURGE /NFL /NDL /NJH /NJS
+robocopy "$PWD" "$Remote" index.html package.json package-lock.json start-server.ps1 vite.config.js /NFL /NDL /NJH /NJS
+if ($LASTEXITCODE -ge 8) { throw "robocopy 失败（退出码 $LASTEXITCODE）" }
+Write-Host '      同步完成' -ForegroundColor Green
+
+# --- 4. 写部署标志（服务器 watcher 3 秒内自动重启）----------
+Write-Host '[4/4] 触发服务器自动部署...' -ForegroundColor Cyan
+echo "deploy-$(Get-Date -Format 'yyyyMMddHHmmss')" | Set-Content -Path $FlagFile -Encoding ASCII
+Write-Host '      标志已写入，等待服务器自动重启（约 5 秒）' -ForegroundColor Green
+Write-Host ''
+Write-Host '全程自动化完成！验证：curl https://mm-online.top' -ForegroundColor Yellow
