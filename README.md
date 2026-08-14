@@ -28,7 +28,11 @@ docs/                 完整文档
 projects.config.example  项目配置示例
 ```
 
-## 新项目接入（5 分钟）
+## 新项目接入
+
+> 先看 **docs/接入决策指南.md** 判断用哪套通道（局域网 SMB / 云 Windows / 云 Linux），再按对应方案接入。
+
+### 常规接入（局域网，5 分钟）
 
 1. 服务器：`projects.config` 加一行
 2. 服务器：项目目录放 `restart.cmd`（templates 复制）
