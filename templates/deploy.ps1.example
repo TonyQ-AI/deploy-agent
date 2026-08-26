@@ -1,4 +1,4 @@
-# 项目部署脚本（通用部署体系模板）
+﻿# 项目部署脚本（通用部署体系模板）
 # 用法：powershell -ExecutionPolicy Bypass -File deploy.ps1
 # 流程：git push -> 构建 -> 同步代码+dist -> 写标志（服务器 watcher 3 秒内自动重启）
 
