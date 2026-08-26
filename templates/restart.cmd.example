@@ -1,13 +1,17 @@
 @echo off
 rem <PROJECT> restart (idempotent) - customize for each project
 rem
-rem ⚠️ 关键坑（真实事故 2026-08-26：job-ai-efficiency-generator-v2）：
-rem   watcher 以 SYSTEM 账户执行本脚本，SYSTEM 的 PATH 里没有 node！
-rem   → 启动命令里的 node 必须用【完整路径】，不能用裸 node
-rem   → 完整路径：C:\Program Files\nodejs\node.exe（按服务器实际位置调整）
-rem   → 症状：watcher 显示 restart executed 但新进程没起来（静默失败），服务一直跑旧代码
+rem CRITICAL RULES (real incidents 2026-08-26 job-ai-efficiency-generator-v2):
+rem   1) THIS FILE MUST STAY PURE ASCII - UTF-8 Chinese comments get mangled
+rem      by cmd.exe (GBK codepage) and break the whole batch parse,
+rem      so kill never runs and the old process stays forever.
+rem   2) watcher runs this script as SYSTEM; SYSTEM PATH has NO node,
+rem      so use the FULL node path (bare "node" fails silently,
+rem      new process never starts, service keeps running old code).
+rem   3) Kill via netstat+taskkill (Get-NetTCPConnection returns empty
+rem      under SYSTEM and cannot kill).
 rem
-rem 杀进程建议用 netstat+taskkill（Get-NetTCPConnection 在 SYSTEM 上下文会空返回）：
+rem Kill port listener (adjust <PORT>):
 rem   for /f "tokens=5" %%p in ('netstat -ano ^| findstr /R ":<PORT> " ^| findstr /R "LISTENING"') do taskkill /F /PID %%p
 
 taskkill /F /IM <YOUR_PROCESS>.exe > nul 2>&1
