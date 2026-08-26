@@ -1,11 +1,21 @@
-﻿# MediaManager 部署脚本（通用部署体系）
+# 项目部署脚本（通用部署体系模板）
 # 用法：powershell -ExecutionPolicy Bypass -File deploy.ps1
 # 流程：git push -> 构建 -> 同步代码+dist -> 写标志（服务器 watcher 3 秒内自动重启）
 
 $ErrorActionPreference = 'Stop'
 
-# --- 配置（★ 新项目改这里）---
-# $Remote = 正斜杠 UNC（\服务器共享路径，勿用反斜杠）
+# --- 配置（★ 新项目改这里，只改这一行）---
+# ⚠️ 必须用【正斜杠】UNC：//服务器/共享/路径
+#    反斜杠（\服务器\...）会被转义成单反斜杠 → 变成"本地盘根路径"，
+#    部署会静默写到本机而非服务器（真实事故：robocopy 全写到 E:\服务器名\...）！
+$Remote = '//<服务器>/E/runserv/<新项目名>'
+
+# --- 防错校验（不要删：填错直接终止，避免静默写错位置）---
+if (-not $Remote) { throw '错误：$Remote 未配置！请填写正斜杠 UNC 路径，如 //服务器/E/runserv/项目名' }
+if ($Remote.StartsWith('\')) { throw '错误：$Remote 是反斜杠 UNC（\服务器\...）！必须改用正斜杠 //服务器/...，否则部署会写到本机而非服务器' }
+if (-not $Remote.StartsWith('//')) { throw '错误：$Remote 必须以 // 开头（正斜杠 UNC）！示例：//服务器/E/runserv/项目名' }
+
+# --- 1. 提交并推送（版本管理/回滚）-------------------------
 Write-Host '[1/4] 提交并推送代码...' -ForegroundColor Cyan
 git add -A
 git commit -m "deploy: $(Get-Date -Format 'yyyy-MM-dd HH:mm') 开发更新" --allow-empty
@@ -21,7 +31,6 @@ Write-Host '      构建完成' -ForegroundColor Green
 
 # --- 3. 同步代码 + dist 到服务器 ----------------------------
 Write-Host '[3/4] 同步代码到服务器...' -ForegroundColor Cyan
-# 代码目录（排除数据/依赖/环境）
 robocopy "$PWD\server" "$Remote\server" /E /XD data /NFL /NDL /NJH /NJS
 robocopy "$PWD\src" "$Remote\src" /E /NFL /NDL /NJH /NJS
 robocopy "$PWD\dist" "$Remote\dist" /E /PURGE /NFL /NDL /NJH /NJS
@@ -31,7 +40,8 @@ Write-Host '      同步完成' -ForegroundColor Green
 
 # --- 4. 写部署标志（服务器 watcher 3 秒内自动重启）----------
 Write-Host '[4/4] 触发服务器自动部署...' -ForegroundColor Cyan
+$FlagFile = Join-Path $Remote '.deploy-flag'
 echo "deploy-$(Get-Date -Format 'yyyyMMddHHmmss')" | Set-Content -Path $FlagFile -Encoding ASCII
 Write-Host '      标志已写入，等待服务器自动重启（约 5 秒）' -ForegroundColor Green
 Write-Host ''
-Write-Host '全程自动化完成！验证：curl https://mm-online.top' -ForegroundColor Yellow
+Write-Host '全程自动化完成！验证：curl https://<域名>' -ForegroundColor Yellow
